@@ -16,7 +16,7 @@ Socket Conveyor uses persistence for its functionalities. The persistences avail
 > use Conveyor\SocketHandlers\SockerMessageRouter as Conveyor;
 > Conveyor::refresh($customPersistence);
 > // then, on message events, run it as usual...
-> $websocket->on('message', fn (Server $s, Frame $f) => Conveyor::run($f->data, $f->fd, $s));
+> $websocket->on('message', fn (Server $s, Frame $f) => Conveyor::init()->run($f->data, $f->fd, $s));
 > ```
 >
 > When you don't do this using a persistence that lasts for more than the server restart, it will cause some data conflicts due to old data remaining.

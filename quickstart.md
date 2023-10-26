@@ -52,7 +52,7 @@ $html = <<<HTML
 HTML;
 
 $websocket = new Server('0.0.0.0', 8001);
-$websocket->on('message', fn (Server $s, Frame $f) => Conveyor::run($f->data, $f->fd, $s));
+$websocket->on('message', fn (Server $s, Frame $f) => Conveyor::init()->run($f->data, $f->fd, $s));
 $websocket->on('request', fn(Request $rq, Response $rp) => $rp->end($html));
 $websocket->start();
 ```

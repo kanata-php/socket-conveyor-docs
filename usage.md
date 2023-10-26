@@ -132,14 +132,15 @@ require __DIR__.'/vendor/autoload.php';
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
+use \Conveyor\Persistence\WebSockets\ChannelsPersistence;
 
-$persistenceService = new SocketChannelPersistenceTable;
+$persistenceService = new ChannelsPersistence;
 
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
-    $socketRouter = new SocketMessageRouter($persistenceService);
-    $socketRouter($frame->data, $frame->fd, $server);
+    SocketMessageRouter::init()
+        ->persistence($persistenceService)
+        ->run($frame->data, $frame->fd, $server);
 });
 
 $websocket->start();
@@ -200,7 +201,7 @@ That's all, with this, you would have the following:
 
 At this example clients can filter messages that they receive by adding listeners to the ones they want. If there are no listeners registered, they will receive all broadcast or fanout actions.
 
-At the `SocketMessageRouter` preparation, we have one extra action being called: `Conveyor\Actions\AddListenerAction`. Also, listeners require another persistence instance: `Conveyor\SocketHandlers\SocketListenerPersistenceTable`.
+At the `SocketMessageRouter` preparation, we have one extra action being called: `Conveyor\Actions\AddListenerAction`. Also, listeners require another persistence instance: `Conveyor\Persistence\WebSockets\ListenersPersistence`.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -209,14 +210,15 @@ use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use Conveyor\SocketHandlers\SocketListenerPersistenceTable;
+use Conveyor\Persistence\WebSockets\ListenersPersistence;
 
-$persistenceService = new SocketListenerPersistenceTable;
+$persistenceService = new ListenersPersistence;
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
-    $socketRouter = new SocketMessageRouter($persistenceService);
-    $socketRouter($frame->data, $frame->fd, $server);
+    SocketMessageRouter::init()
+        ->persistence($persistenceService)
+        ->run($frame->data, $frame->fd, $server);
 });
 
 $websocket->start();
@@ -292,7 +294,7 @@ require __DIR__.'/vendor/autoload.php';
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
+use Conveyor\Persistence\WebSockets\ChannelsPersistence;
 use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
 
 class Middleware1 extends MiddlewareInterface
@@ -304,14 +306,16 @@ class Middleware1 extends MiddlewareInterface
     }
 }
 
-$persistenceService = new SocketChannelPersistenceTable;
+$persistenceService = new ChannelsPersistence();
 
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
     
     // adding with the constructor
-    $socketRouter = new SocketMessageRouter($persistenceService, [
+    $socketRouter = new SocketMessageRouter();
+    $socketRouter->persistence($persistenceService);
+    $socketRouter->actions([
         ActionWithoutMiddleware::class,
         [
             ActionWithMiddleware::class,
@@ -346,7 +350,6 @@ require __DIR__.'/vendor/autoload.php';
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) {
